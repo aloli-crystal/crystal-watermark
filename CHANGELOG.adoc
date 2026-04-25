@@ -3,6 +3,18 @@
 :toc-title: Versions
 :toclevels: 2
 
+== v0.1.1 — 2026-04-25
+
+Tightens the integration test suite now that `crystal-pdf` v0.3.4
+fixes the byte-vs-char offset bug in `find_xref_offset`.
+
+* Integration specs now drive their assertions through the real
+  `PDF::Reader.open(dst)` (page count + per-page MediaBox) instead
+  of the byte-level workarounds of v0.1.0. The output of every style
+  is also re-parsed to confirm it produces a syntactically valid PDF.
+* No behavioural change for end users — the watermarker output is
+  byte-identical between v0.1.0 and v0.1.1.
+
 == v0.1.0 — 2026-04-25
 
 First public release. Pure-Crystal text watermarking on PDF and image

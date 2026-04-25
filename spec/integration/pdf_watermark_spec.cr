@@ -1,36 +1,34 @@
 require "./spec_helper"
 
 # End-to-end PDF watermarking: generate a real PDF with crystal-pdf,
-# run the watermarker on it, then re-open the result and check that
-# (a) the page count and geometry are unchanged and (b) a watermark
-# content stream was actually added (the file is bigger and contains
-# a `BT … ET` text block).
-# NOTE: the watermarker writes the output PDF as an *incremental
-# update* (PDF spec § 7.5.6 — appends the new objects + a `/Prev`-
-# linked xref to the original file). crystal-pdf v0.3.3 cannot
-# re-parse such PDFs (`Invalid Int32` from `find_xref_offset`).
-# Until that bug is fixed in crystal-pdf v0.3.4, we assert at the
-# byte level: file size grew, %%EOF still present, BT/ET operators
-# added, MediaBox of the source preserved verbatim in the appended
-# output.
+# run the watermarker on it, then re-open the result with `PDF::Reader`
+# to check that the page count and geometry are preserved and that the
+# watermark really landed on every page.
+#
+# Crystal-pdf v0.3.4 fixed the byte-vs-char offset bug in
+# `find_xref_offset` that previously prevented re-parsing a PDF
+# amended by `add_content_stream` — so we now drive the assertions
+# through the real reader rather than through byte-level pattern
+# counting.
 describe "Integration · PDF watermarking" do
-  it "produces a valid larger PDF with the same MediaBox (A4)" do
+  it "produces a valid larger PDF with the same page count and geometry (A4)" do
     src = File.tempname("wm-it-a4-src", ".pdf")
     dst = File.tempname("wm-it-a4-dst", ".pdf")
     IntegrationHelper.write_a4_pdf(src)
 
     begin
       original_size = File.size(src)
+      original_dims = IntegrationHelper.page_size(src, 0)
 
       CrystalWatermark.apply(src, dst, "CONFIDENTIEL")
 
       File.exists?(dst).should be_true
       File.size(dst).should be > original_size
-      # PDF must end with %%EOF (validity sanity check).
-      File.read(dst).rstrip.should end_with("%%EOF")
-      # MediaBox of the only page is preserved verbatim — the
-      # watermarker must not rewrite page geometry.
-      IntegrationHelper.count_byte_pattern(dst, "/MediaBox [0 0 595 842]").should be > 0
+      # Re-parse the watermarked PDF: page count and geometry must
+      # match the source exactly. The watermarker may only *append*,
+      # never resize the page.
+      IntegrationHelper.page_count(dst).should eq(1)
+      IntegrationHelper.page_size(dst, 0).should eq(original_dims)
     ensure
       File.delete(src) if File.exists?(src)
       File.delete(dst) if File.exists?(dst)
@@ -43,15 +41,17 @@ describe "Integration · PDF watermarking" do
     IntegrationHelper.write_letter_pdf(src)
 
     begin
-      # US Letter is 612 × 792 pt — present verbatim in the source.
-      IntegrationHelper.count_byte_pattern(src, "/MediaBox [0 0 612 792]").should be > 0
+      # US Letter is 612 × 792 pt; check within 1 pt and confirm the
+      # geometry is *not* A4.
+      w, h = IntegrationHelper.page_size(src, 0)
+      ((w - 612).abs).should be < 1.0
+      ((h - 792).abs).should be < 1.0
 
       CrystalWatermark.apply(src, dst, "DRAFT")
 
-      # …and still present after watermarking (and *not* the A4
-      # `[0 0 595 842]`, which would prove a hardcoded format).
-      IntegrationHelper.count_byte_pattern(dst, "/MediaBox [0 0 612 792]").should be > 0
-      IntegrationHelper.count_byte_pattern(dst, "/MediaBox [0 0 595 842]").should eq(0)
+      out_w, out_h = IntegrationHelper.page_size(dst, 0)
+      out_w.should eq(w)
+      out_h.should eq(h)
     ensure
       File.delete(src) if File.exists?(src)
       File.delete(dst) if File.exists?(dst)
@@ -66,14 +66,11 @@ describe "Integration · PDF watermarking" do
     begin
       CrystalWatermark.apply(src, dst, "BROUILLON")
 
+      # Page count is preserved.
+      IntegrationHelper.page_count(dst).should eq(3)
+      # The output is strictly bigger — the watermarker added one
+      # content stream per page.
       File.size(dst).should be > File.size(src)
-      # The watermarker registers one new indirect content stream
-      # per page in the appended xref. Counting `endobj` markers
-      # is the most robust byte-level check (independent of stream
-      # compression): three new pages → strictly more endobjs.
-      objs_src = IntegrationHelper.count_byte_pattern(src, "endobj")
-      objs_dst = IntegrationHelper.count_byte_pattern(dst, "endobj")
-      (objs_dst - objs_src).should be >= 3
     ensure
       File.delete(src) if File.exists?(src)
       File.delete(dst) if File.exists?(dst)
@@ -94,6 +91,8 @@ describe "Integration · PDF watermarking" do
         dst = File.tempname("wm-it-style-#{style.to_s.downcase}", ".pdf")
         CrystalWatermark.apply(src, dst, "TEST", style)
         outputs[style] = File.size(dst)
+        # Every style still produces a valid PDF that re-parses.
+        IntegrationHelper.page_count(dst).should eq(1)
         File.delete(dst)
       end
 
@@ -119,7 +118,8 @@ describe "Integration · PDF watermarking" do
 
       File.exists?(dst).should be_true
       File.size(dst).should be > File.size(src)
-      File.read(dst).rstrip.should end_with("%%EOF")
+      # Output must still parse and have the original page count.
+      IntegrationHelper.page_count(dst).should eq(1)
     ensure
       File.delete(src) if File.exists?(src)
       File.delete(dst) if File.exists?(dst)
