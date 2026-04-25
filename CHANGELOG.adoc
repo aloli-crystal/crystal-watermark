@@ -1,0 +1,37 @@
+= Changelog
+:toc: left
+:toc-title: Versions
+:toclevels: 2
+
+== v0.1.0 — 2026-04-25
+
+First public release. Pure-Crystal text watermarking on PDF and image
+files, designed to mark identity documents and confidential files
+before transmission. Inspired by the use case behind
+https://filigrane.beta.gouv.fr/[filigrane.beta.gouv.fr].
+
+* **PDF watermarking** via crystal-pdf's `PDF::Reader.add_content_stream`:
+  injects a watermark content stream on every page, preserving the
+  original page content. Supports any page format (A4, Letter, A3, …)
+  by reading the actual `MediaBox` of each page.
+* **Image watermarking** for PNG and JPEG inputs (always written back
+  as PNG): a bitmap font is rendered pixel-by-pixel with the requested
+  opacity into the source image.
+* **Five styles**: `Diagonal` (auto-sized to the page diagonal,
+  default), `Tiled` (grid of repeated watermarks), `Header`, `Footer`,
+  `Center`.
+* **CLI** at `bin/crystal-watermark` with short and long flags for
+  every option (`-t`, `-o`, `-s`, `--opacity`, `--color`,
+  `--font-size`, `--rotation`, `-v`, `-h`).
+* **API**: `CrystalWatermark.apply(input, output, text, style, options)`
+  auto-dispatches based on file extension.
+* **WinAnsiEncoding mapping** for French/German/Spanish accents and
+  common typographic punctuation (em-dash, smart quotes, …).
+* Bilingual README (EN + FR) and CHANGELOG.
+* CI: ameba lint + crystal spec on every push.
+* **19 unit tests** covering options, image watermarking (5 styles,
+  pixel-modification check, accents, error paths) and the public API.
+
+== v0.0.x — 2026-04-15 and earlier (unpublished)
+
+Internal iterations. Not released to GitHub.

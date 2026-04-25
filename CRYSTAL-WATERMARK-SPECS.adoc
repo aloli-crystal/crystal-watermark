@@ -1,0 +1,261 @@
+= crystal-watermark — Spécifications fonctionnelles et techniques
+:author: Philippe Nénert
+:revdate: 15 avril 2026
+:revnumber: 1.0
+:lang: fr
+:toc: left
+:toclevels: 3
+:icons: font
+:sectnums:
+
+== Présentation
+
+=== Le problème
+
+Filigraner un document avant de le transmettre est une mesure de protection essentielle contre l'usurpation d'identité. Aucune bibliothèque Crystal n'existe pour filigraner des PDF ou des images.
+
+=== La solution
+
+**crystal-watermark** est un shard Crystal pur qui ajoute un filigrane textuel sur des documents PDF et des images (PNG, JPEG, WebP). Il fournit une API Crystal et une CLI.
+
+=== Identité
+
+* *Nom* : crystal-watermark
+* *Organisation GitHub* : aloli-crystal
+* *Licence* : MIT
+* *Langage* : Crystal pur
+* *Dépendances* : `crystal-pdf` (aloli-crystal) pour la génération PDF
+
+== Formats supportés
+
+[cols="1,2,1"]
+|===
+| Format | Traitement | v1
+
+| PDF (une page) | Lecture PDF, injection du filigrane sur la page, réécriture | oui
+| PDF (multi-pages) | Filigrane sur chaque page | oui
+| PNG | Lecture image, dessin du filigrane, écriture | oui
+| JPEG | Lecture image, dessin du filigrane, écriture PNG (JPEG en entrée, PNG en sortie) | oui
+| WebP | Lecture, filigrane, écriture PNG | v2
+|===
+
+== API
+
+=== Filigranage simple
+
+[source,crystal]
+----
+require "crystal-watermark"
+
+# Filigraner un PDF
+CrystalWatermark.apply(
+  input: "document.pdf",
+  output: "document-filigrane.pdf",
+  text: "Remis à SuperBocaux — 15 avril 2026\nCréation compte fournisseur",
+  style: :diagonal       # :diagonal, :header, :footer, :center, :tiled
+)
+
+# Filigraner une image
+CrystalWatermark.apply(
+  input: "carte-identite.jpg",
+  output: "carte-identite-filigrane.png",
+  text: "Remis à SuperBocaux — 15 avril 2026",
+  style: :diagonal
+)
+----
+
+=== Options de style
+
+[source,crystal]
+----
+CrystalWatermark.apply(
+  input: "document.pdf",
+  output: "document-filigrane.pdf",
+  text: "CONFIDENTIEL — Usage exclusif",
+  style: :diagonal,
+  options: CrystalWatermark::Options.new(
+    font_size: 48,          # Taille du texte (défaut : 48)
+    color: {0.8, 0.1, 0.1}, # Rouge (R, G, B entre 0.0 et 1.0)
+    opacity: 0.15,           # Opacité (défaut : 0.15)
+    rotation: 45.0,          # Angle en degrés (défaut : 45 pour :diagonal)
+    repeat: true,            # Répéter le texte en mosaïque (défaut : false)
+    margin: 50,              # Marge en points (défaut : 50)
+  )
+)
+----
+
+=== Styles de filigrane
+
+[cols="1,3"]
+|===
+| Style | Description
+
+| `:diagonal` | Texte en diagonale au centre de la page (45°), semi-transparent. Style par défaut.
+| `:header` | Texte en haut de chaque page, horizontal.
+| `:footer` | Texte en bas de chaque page, horizontal.
+| `:center` | Texte centré horizontalement, sans rotation.
+| `:tiled` | Texte répété en mosaïque sur toute la page (le plus sécurisé, difficile à retirer).
+|===
+
+== CLI
+
+=== Utilisation
+
+[source,shell]
+----
+# Filigraner un PDF
+crystal-watermark document.pdf -t "Remis à SuperBocaux — 15/04/2026" -o document-filigrane.pdf
+
+# Filigraner une image
+crystal-watermark photo-id.jpg -t "Usage exclusif SuperBocaux" -o photo-id-filigrane.png
+
+# Filigraner avec options
+crystal-watermark document.pdf \
+  -t "CONFIDENTIEL" \
+  -o document-filigrane.pdf \
+  --style tiled \
+  --opacity 0.10 \
+  --color "0.8,0.1,0.1" \
+  --font-size 36
+
+# Filigraner tous les PDF d'un dossier
+crystal-watermark *.pdf -t "Remis à SuperBocaux" -o watermarked/
+----
+
+=== Options CLI
+
+[cols="1,1,3"]
+|===
+| Option | Défaut | Description
+
+| `-t`, `--text` | (obligatoire) | Texte du filigrane
+| `-o`, `--output` | `{nom}-watermarked.{ext}` | Fichier ou dossier de sortie
+| `-s`, `--style` | `diagonal` | Style : diagonal, header, footer, center, tiled
+| `--opacity` | `0.15` | Opacité (0.0 à 1.0)
+| `--color` | `0.5,0.5,0.5` | Couleur RGB (gris par défaut)
+| `--font-size` | `48` | Taille du texte en points
+| `--rotation` | auto | Angle de rotation en degrés
+| `-h`, `--help` | | Afficher l'aide
+| `-v`, `--version` | | Afficher la version
+|===
+
+== Architecture technique
+
+=== Filigranage PDF
+
+Le PDF est un format structuré composé d'objets. Pour filigraner sans bibliothèque de lecture complète, crystal-watermark utilise une approche par *injection de contenu* :
+
+. Parser la structure minimale du PDF (xref table, objets Page)
+. Pour chaque objet Page, ajouter un nouveau content stream avec le filigrane
+. Le filigrane utilise les opérateurs PDF natifs :
+** `q` / `Q` : sauvegarder/restaurer l'état graphique
+** `gs` : appliquer l'opacité (ExtGState)
+** `cm` : matrice de transformation (rotation, position)
+** `BT` / `ET` : bloc de texte
+** `Tf` : sélection de la police (Helvetica, embarquée par défaut)
+** `Tj` : affichage du texte
+. Réécrire le PDF avec les content streams modifiés et la xref mise à jour
+
+=== Filigranage images
+
+Pour les images, crystal-watermark utilise `stumpy_png` et `stumpy_jpeg` (dépendances de crystal-pdf) :
+
+. Charger l'image en mémoire
+. Dessiner le texte du filigrane pixel par pixel avec l'opacité demandée
+. Sauvegarder en PNG
+
+== Structure du shard
+
+[source]
+----
+crystal-watermark/
+├── shard.yml
+├── LICENSE                          # MIT
+├── README.adoc
+├── CRYSTAL-WATERMARK-SPECS.adoc     # Ce document
+├── bin/
+│   └── crystal-watermark            # CLI (point d'entrée)
+├── src/
+│   ├── crystal_watermark.cr         # Point d'entrée, requires
+│   ├── crystal_watermark/
+│   │   ├── version.cr
+│   │   ├── options.cr               # Options de filigranage
+│   │   ├── styles.cr                # Styles prédéfinis (diagonal, tiled, etc.)
+│   │   ├── pdf_watermarker.cr       # Filigranage PDF
+│   │   ├── pdf_parser.cr            # Parseur PDF minimal (xref, pages)
+│   │   ├── image_watermarker.cr     # Filigranage images (PNG, JPEG)
+│   │   └── text_renderer.cr         # Rendu du texte (calcul position, rotation)
+├── spec/
+│   ├── spec_helper.cr
+│   ├── pdf_watermarker_spec.cr
+│   ├── pdf_parser_spec.cr
+│   ├── image_watermarker_spec.cr
+│   ├── options_spec.cr
+│   └── fixtures/
+│       ├── sample-1page.pdf
+│       ├── sample-3pages.pdf
+│       ├── sample.png
+│       └── sample.jpg
+└── data/
+----
+
+== Dépendances
+
+[cols="1,3"]
+|===
+| Shard | Usage
+
+| `crystal-pdf` (aloli-crystal) | Génération des content streams PDF, accès à stumpy_png/stumpy_jpeg
+|===
+
+== Tests
+
+=== TDD obligatoire
+
+WARNING: Les specs sont écrites *avant* le code. Toujours.
+
+=== Couverture
+
+[cols="1,3"]
+|===
+| Test | Ce qui est vérifié
+
+| *PDF 1 page* | Le filigrane apparaît, le texte est correct, le PDF est valide
+| *PDF multi-pages* | Le filigrane apparaît sur chaque page
+| *PNG* | Le filigrane est visible, l'image est lisible
+| *JPEG* | Lecture JPEG, sortie PNG avec filigrane
+| *Styles* | Chaque style produit un résultat visuellement distinct
+| *Options* | Opacité, couleur, taille, rotation fonctionnent
+| *CLI* | Les options en ligne de commande sont correctement parsées
+| *Erreurs* | Fichier inexistant, format non supporté, texte vide
+|===
+
+== Périmètre v1 / v2
+
+=== v1
+
+* Filigranage PDF (une page et multi-pages)
+* Filigranage PNG et JPEG (sortie PNG)
+* 5 styles : diagonal, header, footer, center, tiled
+* CLI fonctionnelle
+* Options : opacité, couleur, taille, rotation
+
+=== v2
+
+* Support WebP
+* Sortie JPEG (en plus de PNG)
+* Filigrane image (logo en plus du texte)
+* Traitement par lot (dossier entier)
+* Préservation des métadonnées PDF (auteur, titre, etc.)
+
+== Historique des décisions
+
+[cols="1,2,3"]
+|===
+| Date | Décision | Raison
+
+| 15 avril 2026 | Crystal pur avec crystal-pdf | Réutilise l'écosystème aloli-crystal existant
+| 15 avril 2026 | Parseur PDF minimal (pas de lecture complète) | Seule la structure Page/Content est nécessaire pour injecter un filigrane
+| 15 avril 2026 | Licence MIT | Shard utilitaire, adoption maximale
+| 15 avril 2026 | Sortie PNG pour les images | PNG supporte la transparence, JPEG non — plus cohérent pour un filigrane
+|===

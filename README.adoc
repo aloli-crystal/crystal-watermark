@@ -1,0 +1,204 @@
+= crystal-watermark
+:toc: macro
+:toclevels: 2
+
+Add text watermarks to PDF and image (PNG, JPEG) files. Pure Crystal,
+no external tool dependency. Inspired by
+https://filigrane.beta.gouv.fr/[filigrane.beta.gouv.fr] — designed to
+mark identity documents and confidential files before transmission so
+they cannot be reused without context.
+
+🇫🇷 Lisez ce document en français : link:README.fr.adoc[README.fr.adoc]
+
+toc::[]
+
+== Why
+
+Watermarking a document before sending it (an ID card to a supplier,
+a contract draft to a partner, a scan of a sensitive document to a
+public administration, …) is the cheapest way to make any later
+attempt at re-using the file traceable. The same need exists in
+Crystal projects, but no shard provided it — until now.
+
+== Features
+
+* **Five styles** out of the box: `:diagonal`, `:tiled`, `:header`,
+  `:footer`, `:center`.
+* **PDF and image inputs**: writes back PDF for PDF inputs, PNG for
+  image inputs (PNG and JPEG accepted).
+* **Customisable**: font size, RGB colour, opacity, rotation,
+  margin, multi-line text.
+* **Smart auto-sizing** in diagonal mode: fits the diagonal of the
+  page so the watermark always reaches both corners regardless of
+  the page format (A4, Letter, A3, …).
+* **Pure Crystal**: depends only on
+  https://github.com/aloli-crystal/crystal-pdf[crystal-pdf] and
+  https://github.com/stumpycr[StumpyPNG/StumpyJPEG].
+* **CLI and API**: drop a binary into `~/bin` or call from your
+  own shard.
+
+== Installation
+
+Add to your `shard.yml`:
+
+[source,yaml]
+----
+dependencies:
+  crystal-watermark:
+    github: aloli-crystal/crystal-watermark
+    version: "~> 0.1"
+----
+
+then run `shards install`.
+
+For the CLI, build the binary once:
+
+[source,shell]
+----
+git clone https://github.com/aloli-crystal/crystal-watermark
+cd crystal-watermark
+shards build --release
+cp bin/crystal-watermark ~/bin/   # or use crystal-bin-installer
+----
+
+== CLI
+
+[source,shell]
+----
+# Diagonal watermark with default settings (semi-transparent grey,
+# auto-sized to the page diagonal).
+crystal-watermark document.pdf -t "CONFIDENTIEL"
+
+# Multi-line author-facing watermark (one of the most common
+# real-world uses — say what was sent, to whom, and when).
+crystal-watermark id-card.jpg \
+  -t "Remis à SuperBocaux — 25 avril 2026
+Création compte fournisseur" \
+  -o id-card-watermarked.png
+
+# Tiled mode — the hardest to remove with a graphics editor.
+crystal-watermark contract.pdf \
+  -t "DRAFT" \
+  --style tiled \
+  --opacity 0.10 \
+  --color "0.8,0.1,0.1" \
+  --font-size 36
+----
+
+=== Options
+
+[cols="1,3"]
+|===
+| Option | Description
+
+| `-t TEXT`, `--text TEXT`
+| Watermark text (required). Newlines in the string become real line
+  breaks in the rendered watermark.
+
+| `-o FILE`, `--output FILE`
+| Output path. Defaults to `<input>-watermarked.<ext>` next to the
+  input.
+
+| `-s STYLE`, `--style STYLE`
+| `diagonal` (default), `tiled`, `header`, `footer`, `center`.
+
+| `--opacity VALUE`
+| 0.0 (invisible) to 1.0 (opaque). Default 0.15.
+
+| `--color R,G,B`
+| RGB triplet, each component 0.0–1.0. Default `0.5,0.5,0.5`
+  (medium grey).
+
+| `--font-size SIZE`
+| Point size. Default 48 — autoshrunk in diagonal mode if the text
+  is too long for the page diagonal.
+
+| `--rotation DEG`
+| Override the default rotation (45° for diagonal/tiled, 0° for
+  header/footer/center).
+
+| `-h`, `--help`
+| Show help and exit.
+
+| `-v`, `--version`
+| Print the version and exit.
+|===
+
+== API
+
+[source,crystal]
+----
+require "crystal-watermark"
+
+# Easiest entry point — auto-detects the input format.
+CrystalWatermark.apply(
+  input: "document.pdf",
+  output: "document-watermarked.pdf",
+  text: "Remis à SuperBocaux — 25 avril 2026",
+  style: CrystalWatermark::Style::Diagonal,
+)
+
+# Fine-grained control via Options.
+options = CrystalWatermark::Options.new(
+  font_size: 36,
+  color: {0.8, 0.1, 0.1},
+  opacity: 0.20,
+  rotation: 30.0,
+  margin: 60,
+)
+CrystalWatermark.apply(
+  input: "contract.pdf",
+  output: "contract-draft.pdf",
+  text: "DRAFT",
+  style: CrystalWatermark::Style::Tiled,
+  options: options,
+)
+----
+
+== Styles
+
+[cols="1,3"]
+|===
+| Style | What it does
+
+| `Diagonal`
+| Single watermark from corner to corner. Auto-sized along the page
+  diagonal so the same text always fills the page regardless of A4
+  vs Letter vs A3. Best balance between visibility and readability
+  of the underlying document.
+
+| `Tiled`
+| Watermark repeated as a grid all over the page. Hardest to remove
+  with a graphics editor. Use this for high-stakes documents.
+
+| `Header`
+| Single line at the top of the page.
+
+| `Footer`
+| Single line at the bottom of the page.
+
+| `Center`
+| Single line centred horizontally, midway down the page.
+|===
+
+== Limitations (v0.1)
+
+* PDF watermarking adds a content stream to every page; the page
+  numbering is not adjusted (use `crystal-combine-pdf` for that).
+* Image inputs are always written back as PNG (no JPEG output).
+* Only Latin-script characters survive the WinAnsi encoding step;
+  Cyrillic / Greek / CJK fall back to `?`.
+
+== Development
+
+[source,shell]
+----
+shards install
+crystal spec
+bin/ameba
+crystal tool format src/ spec/
+----
+
+== License
+
+MIT — see link:LICENSE[LICENSE].

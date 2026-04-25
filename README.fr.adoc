@@ -1,0 +1,209 @@
+= crystal-watermark
+:toc: macro
+:toclevels: 2
+
+Pose un filigrane textuel sur des fichiers PDF et image (PNG, JPEG).
+Crystal pur, sans dépendance externe. Inspiré de
+https://filigrane.beta.gouv.fr/[filigrane.beta.gouv.fr] — conçu pour
+marquer des pièces d'identité et documents confidentiels avant
+transmission, afin qu'ils ne puissent être réutilisés hors contexte.
+
+🇬🇧 Read this in English: link:README.adoc[README.adoc]
+
+toc::[]
+
+== Pourquoi
+
+Filigraner un document avant de l'envoyer (une carte d'identité à un
+fournisseur, un brouillon de contrat à un partenaire, le scan d'un
+document sensible à une administration, …) est le moyen le moins
+coûteux de rendre traçable toute tentative ultérieure de réutilisation
+du fichier. Le même besoin existe en Crystal mais aucun shard ne le
+couvrait — jusqu'ici.
+
+== Fonctionnalités
+
+* **Cinq styles** prêts à l'emploi : `:diagonal`, `:tiled`, `:header`,
+  `:footer`, `:center`.
+* **Entrées PDF et image** : sortie PDF pour entrée PDF, sortie PNG
+  pour entrée image (PNG et JPEG acceptés).
+* **Personnalisable** : taille de police, couleur RGB, opacité,
+  rotation, marge, texte multi-ligne.
+* **Auto-dimensionnement intelligent** en mode diagonal : suit la
+  diagonale de la page pour que le filigrane atteigne toujours les
+  deux coins, quel que soit le format (A4, Letter, A3, …).
+* **Crystal pur** : ne dépend que de
+  https://github.com/aloli-crystal/crystal-pdf[crystal-pdf] et de
+  https://github.com/stumpycr[StumpyPNG/StumpyJPEG].
+* **CLI et API** : déposer un binaire dans `~/bin` ou appeler depuis
+  votre propre shard.
+
+== Installation
+
+Ajouter à votre `shard.yml` :
+
+[source,yaml]
+----
+dependencies:
+  crystal-watermark:
+    github: aloli-crystal/crystal-watermark
+    version: "~> 0.1"
+----
+
+puis lancer `shards install`.
+
+Pour la CLI, compilez le binaire une fois :
+
+[source,shell]
+----
+git clone https://github.com/aloli-crystal/crystal-watermark
+cd crystal-watermark
+shards build --release
+cp bin/crystal-watermark ~/bin/   # ou utiliser crystal-bin-installer
+----
+
+== CLI
+
+[source,shell]
+----
+# Filigrane diagonal avec les valeurs par défaut (gris semi-transparent,
+# auto-dimensionné sur la diagonale de la page).
+crystal-watermark document.pdf -t "CONFIDENTIEL"
+
+# Filigrane multi-ligne explicite à l'intention du destinataire — l'un
+# des cas d'usage les plus courants : indiquer ce qui a été envoyé,
+# à qui, et quand.
+crystal-watermark carte-identite.jpg \
+  -t "Remis à SuperBocaux — 25 avril 2026
+Création compte fournisseur" \
+  -o carte-identite-watermarked.png
+
+# Mode tuilé — le plus difficile à retirer avec un éditeur graphique.
+crystal-watermark contrat.pdf \
+  -t "BROUILLON" \
+  --style tiled \
+  --opacity 0.10 \
+  --color "0.8,0.1,0.1" \
+  --font-size 36
+----
+
+=== Options
+
+[cols="1,3"]
+|===
+| Option | Description
+
+| `-t TEXTE`, `--text TEXTE`
+| Texte du filigrane (obligatoire). Les sauts de ligne dans la chaîne
+  deviennent de vrais retours à la ligne dans le rendu.
+
+| `-o FICHIER`, `--output FICHIER`
+| Chemin de sortie. Par défaut : `<entrée>-watermarked.<ext>` à côté
+  de l'entrée.
+
+| `-s STYLE`, `--style STYLE`
+| `diagonal` (par défaut), `tiled`, `header`, `footer`, `center`.
+
+| `--opacity VALEUR`
+| 0.0 (invisible) à 1.0 (opaque). Défaut : 0.15.
+
+| `--color R,G,B`
+| Triplet RGB, composantes entre 0.0 et 1.0. Défaut : `0.5,0.5,0.5`
+  (gris moyen).
+
+| `--font-size TAILLE`
+| Taille en points. Défaut : 48 — réduit automatiquement en mode
+  diagonal si le texte est trop long pour la diagonale.
+
+| `--rotation DEG`
+| Surcharge la rotation par défaut (45° pour diagonal/tiled, 0° pour
+  header/footer/center).
+
+| `-h`, `--help`
+| Afficher l'aide et quitter.
+
+| `-v`, `--version`
+| Afficher la version et quitter.
+|===
+
+== API
+
+[source,crystal]
+----
+require "crystal-watermark"
+
+# Point d'entrée le plus simple — détecte automatiquement le format.
+CrystalWatermark.apply(
+  input: "document.pdf",
+  output: "document-watermarked.pdf",
+  text: "Remis à SuperBocaux — 25 avril 2026",
+  style: CrystalWatermark::Style::Diagonal,
+)
+
+# Contrôle fin via Options.
+options = CrystalWatermark::Options.new(
+  font_size: 36,
+  color: {0.8, 0.1, 0.1},
+  opacity: 0.20,
+  rotation: 30.0,
+  margin: 60,
+)
+CrystalWatermark.apply(
+  input: "contrat.pdf",
+  output: "contrat-brouillon.pdf",
+  text: "BROUILLON",
+  style: CrystalWatermark::Style::Tiled,
+  options: options,
+)
+----
+
+== Styles
+
+[cols="1,3"]
+|===
+| Style | Effet
+
+| `Diagonal`
+| Un filigrane unique de coin à coin. Auto-dimensionné sur la
+  diagonale, donc le même texte remplit toujours la page quel que
+  soit le format A4/Letter/A3. Meilleur compromis entre visibilité
+  et lisibilité du document sous-jacent.
+
+| `Tiled`
+| Filigrane répété en grille sur toute la page. Le plus difficile à
+  retirer dans un éditeur graphique. À privilégier pour les
+  documents à fort enjeu.
+
+| `Header`
+| Une ligne en haut de la page.
+
+| `Footer`
+| Une ligne en bas de la page.
+
+| `Center`
+| Une ligne centrée horizontalement, à mi-hauteur.
+|===
+
+== Limitations (v0.1)
+
+* Le filigranage PDF ajoute un content stream à chaque page ; la
+  numérotation n'est pas ajustée (utiliser `crystal-combine-pdf` pour
+  cela).
+* Les entrées image sont toujours réécrites en PNG (pas de sortie
+  JPEG).
+* Seuls les caractères Latin survivent à l'encodage WinAnsi ;
+  cyrillique, grec, CJK retombent sur `?`.
+
+== Développement
+
+[source,shell]
+----
+shards install
+crystal spec
+bin/ameba
+crystal tool format src/ spec/
+----
+
+== Licence
+
+MIT — voir link:LICENSE[LICENSE].

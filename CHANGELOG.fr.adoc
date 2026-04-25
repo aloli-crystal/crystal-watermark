@@ -1,0 +1,40 @@
+= Journal des modifications
+:toc: left
+:toc-title: Versions
+:toclevels: 2
+
+== v0.1.0 — 2026-04-25
+
+Première version publique. Filigranage textuel en Crystal pur sur
+fichiers PDF et image, conçu pour marquer les pièces d'identité et
+documents confidentiels avant transmission. Inspiré du cas d'usage
+de https://filigrane.beta.gouv.fr/[filigrane.beta.gouv.fr].
+
+* **Filigranage PDF** via `PDF::Reader.add_content_stream` de
+  crystal-pdf : injecte un content stream de filigrane sur chaque
+  page, en préservant le contenu original. Supporte tout format de
+  page (A4, Letter, A3, …) en lisant la `MediaBox` réelle de chaque
+  page.
+* **Filigranage d'images** pour les entrées PNG et JPEG (toujours
+  réécrites en PNG) : une police bitmap est rendue pixel par pixel
+  avec l'opacité demandée dans l'image source.
+* **Cinq styles** : `Diagonal` (auto-dimensionné sur la diagonale,
+  par défaut), `Tiled` (grille répétée), `Header`, `Footer`,
+  `Center`.
+* **CLI** dans `bin/crystal-watermark` avec drapeaux courts et longs
+  pour toutes les options (`-t`, `-o`, `-s`, `--opacity`, `--color`,
+  `--font-size`, `--rotation`, `-v`, `-h`).
+* **API** : `CrystalWatermark.apply(input, output, text, style, options)`
+  dispatche automatiquement selon l'extension du fichier.
+* **Table de correspondance WinAnsiEncoding** pour les accents
+  français/allemands/espagnols et la ponctuation typographique
+  courante (tiret cadratin, guillemets typographiques, …).
+* README bilingue (EN + FR) et CHANGELOG.
+* CI : lint ameba + crystal spec à chaque push.
+* **19 tests unitaires** couvrant les options, le filigranage
+  d'image (5 styles, vérification de modification des pixels,
+  accents, chemins d'erreur) et l'API publique.
+
+== v0.0.x — 2026-04-15 et antérieur (non publié)
+
+Itérations internes. Non publiées sur GitHub.
