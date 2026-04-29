@@ -1,6 +1,6 @@
-# Filigranage de fichiers PDF via crystal-pdf Reader.
+# Filigranage de fichiers PDF via pdf Reader.
 # Injecte un content stream avec le filigrane sur chaque page.
-require "crystal-pdf/src/pdf"
+require "pdf/src/pdf"
 
 module CrystalWatermark
   class PdfWatermarker

@@ -3,9 +3,25 @@
 :toc-title: Versions
 :toclevels: 2
 
+== v0.1.2 — 2026-04-29
+
+=== Changed
+
+* **GitHub repository renamed** to `aloli-crystal/watermark` (Aloli
+  naming convention: original creations drop the `crystal-` prefix).
+  Old links redirect automatically.
+* `name:` field, build target and CLI binary aligned on the new repo
+  name. New entry-point shim `src/watermark.cr` (loads
+  `src/crystal_watermark.cr`, which holds the actual code).
+* Dependency on the PDF shard updated to its new URL
+  (`aloli-crystal/pdf`). `require "crystal-pdf/src/pdf"` in `src/`
+  updated to `require "pdf/src/pdf"`.
+* Internal module `Watermark` and folder `src/crystal_watermark/`
+  unchanged — cleanup deferred.
+
 == v0.1.1 — 2026-04-25
 
-Tightens the integration test suite now that `crystal-pdf` v0.3.4
+Tightens the integration test suite now that `pdf` v0.3.4
 fixes the byte-vs-char offset bug in `find_xref_offset`.
 
 * Integration specs now drive their assertions through the real
@@ -22,7 +38,7 @@ files, designed to mark identity documents and confidential files
 before transmission. Inspired by the use case behind
 https://filigrane.beta.gouv.fr/[filigrane.beta.gouv.fr].
 
-* **PDF watermarking** via crystal-pdf's `PDF::Reader.add_content_stream`:
+* **PDF watermarking** via pdf's `PDF::Reader.add_content_stream`:
   injects a watermark content stream on every page, preserving the
   original page content. Supports any page format (A4, Letter, A3, …)
   by reading the actual `MediaBox` of each page.

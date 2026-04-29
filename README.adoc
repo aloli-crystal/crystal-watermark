@@ -1,4 +1,4 @@
-= crystal-watermark
+= watermark
 :toc: macro
 :toclevels: 2
 
@@ -32,7 +32,7 @@ Crystal projects, but no shard provided it — until now.
   page so the watermark always reaches both corners regardless of
   the page format (A4, Letter, A3, …).
 * **Pure Crystal**: depends only on
-  https://github.com/aloli-crystal/crystal-pdf[crystal-pdf] and
+  https://github.com/aloli-crystal/pdf[pdf] and
   https://github.com/stumpycr[StumpyPNG/StumpyJPEG].
 * **CLI and API**: drop a binary into `~/bin` or call from your
   own shard.
@@ -44,8 +44,8 @@ Add to your `shard.yml`:
 [source,yaml]
 ----
 dependencies:
-  crystal-watermark:
-    github: aloli-crystal/crystal-watermark
+  watermark:
+    github: aloli-crystal/watermark
     version: "~> 0.1"
 ----
 
@@ -55,10 +55,10 @@ For the CLI, build the binary once:
 
 [source,shell]
 ----
-git clone https://github.com/aloli-crystal/crystal-watermark
-cd crystal-watermark
+git clone https://github.com/aloli-crystal/watermark
+cd watermark
 shards build --release
-cp bin/crystal-watermark ~/bin/   # or use crystal-bin-installer
+cp bin/watermark ~/bin/   # or use bin-installer
 ----
 
 == CLI
@@ -67,17 +67,17 @@ cp bin/crystal-watermark ~/bin/   # or use crystal-bin-installer
 ----
 # Diagonal watermark with default settings (semi-transparent grey,
 # auto-sized to the page diagonal).
-crystal-watermark document.pdf -t "CONFIDENTIEL"
+watermark document.pdf -t "CONFIDENTIEL"
 
 # Multi-line author-facing watermark (one of the most common
 # real-world uses — say what was sent, to whom, and when).
-crystal-watermark id-card.jpg \
+watermark id-card.jpg \
   -t "Remis à SuperBocaux — 25 avril 2026
 Création compte fournisseur" \
   -o id-card-watermarked.png
 
 # Tiled mode — the hardest to remove with a graphics editor.
-crystal-watermark contract.pdf \
+watermark contract.pdf \
   -t "DRAFT" \
   --style tiled \
   --opacity 0.10 \
@@ -128,7 +128,7 @@ crystal-watermark contract.pdf \
 
 [source,crystal]
 ----
-require "crystal-watermark"
+require "watermark"
 
 # Easiest entry point — auto-detects the input format.
 CrystalWatermark.apply(

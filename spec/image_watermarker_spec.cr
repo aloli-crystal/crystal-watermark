@@ -163,7 +163,7 @@ describe CrystalWatermark do
     end
 
     it "filigrane un fichier PDF" do
-      # Créer un vrai PDF de test via crystal-pdf
+      # Créer un vrai PDF de test via pdf
       pdf = PDF::Document.new
       pdf.page(size: :a4) do |page|
         page.font("Helvetica", size: 12)

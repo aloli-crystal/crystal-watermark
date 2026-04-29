@@ -1,5 +1,5 @@
-name: crystal-watermark
-version: 0.1.1
+name: watermark
+version: 0.1.2
 
 description: |
   Add text watermarks to PDF and image files (PNG, JPEG). Pure Crystal,
@@ -14,11 +14,11 @@ authors:
 license: MIT
 
 # Pour le développement local, remplacer par :
-#   crystal-pdf:
-#     path: ../crystal-pdf
+#   pdf:
+#     path: ../pdf
 dependencies:
-  crystal-pdf:
-    github: aloli-crystal/crystal-pdf
+  pdf:
+    github: aloli-crystal/pdf
     version: "~> 0.3"
 
 development_dependencies:
@@ -27,7 +27,7 @@ development_dependencies:
     version: "~> 1.6"
 
 targets:
-  crystal-watermark:
+  watermark:
     main: src/cli.cr
 
 crystal: ">= 1.19.0"

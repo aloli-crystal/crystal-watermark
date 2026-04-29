@@ -3,10 +3,26 @@
 :toc-title: Versions
 :toclevels: 2
 
+== v0.1.2 — 2026-04-29
+
+=== Modifié
+
+* **Repo GitHub renommé** vers `aloli-crystal/watermark` (convention
+  de nommage Aloli : les créations originales abandonnent le préfixe
+  `crystal-`). Les anciens liens redirigent automatiquement.
+* Champ `name:`, cible de compilation et binaire CLI alignés sur le
+  nouveau nom du repo. Nouveau shim d'entrée `src/watermark.cr`
+  (charge `src/crystal_watermark.cr`, le code).
+* Dépendance vers PDF mise à jour sur la nouvelle URL
+  (`aloli-crystal/pdf`). `require "crystal-pdf/src/pdf"` dans `src/`
+  mis à jour vers `require "pdf/src/pdf"`.
+* Le module interne `Watermark` et le dossier `src/crystal_watermark/`
+  restent inchangés — nettoyage reporté.
+
 == v0.1.1 — 2026-04-25
 
 Resserre la suite de tests d'intégration maintenant que
-`crystal-pdf` v0.3.4 corrige le bug d'offset octet-vs-caractère dans
+`pdf` v0.3.4 corrige le bug d'offset octet-vs-caractère dans
 `find_xref_offset`.
 
 * Les specs d'intégration vérifient maintenant à travers le vrai
@@ -25,7 +41,7 @@ documents confidentiels avant transmission. Inspiré du cas d'usage
 de https://filigrane.beta.gouv.fr/[filigrane.beta.gouv.fr].
 
 * **Filigranage PDF** via `PDF::Reader.add_content_stream` de
-  crystal-pdf : injecte un content stream de filigrane sur chaque
+  pdf : injecte un content stream de filigrane sur chaque
   page, en préservant le contenu original. Supporte tout format de
   page (A4, Letter, A3, …) en lisant la `MediaBox` réelle de chaque
   page.

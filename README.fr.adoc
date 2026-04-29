@@ -1,4 +1,4 @@
-= crystal-watermark
+= watermark
 :toc: macro
 :toclevels: 2
 
@@ -33,7 +33,7 @@ couvrait — jusqu'ici.
   diagonale de la page pour que le filigrane atteigne toujours les
   deux coins, quel que soit le format (A4, Letter, A3, …).
 * **Crystal pur** : ne dépend que de
-  https://github.com/aloli-crystal/crystal-pdf[crystal-pdf] et de
+  https://github.com/aloli-crystal/pdf[pdf] et de
   https://github.com/stumpycr[StumpyPNG/StumpyJPEG].
 * **CLI et API** : déposer un binaire dans `~/bin` ou appeler depuis
   votre propre shard.
@@ -45,8 +45,8 @@ Ajouter à votre `shard.yml` :
 [source,yaml]
 ----
 dependencies:
-  crystal-watermark:
-    github: aloli-crystal/crystal-watermark
+  watermark:
+    github: aloli-crystal/watermark
     version: "~> 0.1"
 ----
 
@@ -56,10 +56,10 @@ Pour la CLI, compilez le binaire une fois :
 
 [source,shell]
 ----
-git clone https://github.com/aloli-crystal/crystal-watermark
-cd crystal-watermark
+git clone https://github.com/aloli-crystal/watermark
+cd watermark
 shards build --release
-cp bin/crystal-watermark ~/bin/   # ou utiliser crystal-bin-installer
+cp bin/watermark ~/bin/   # ou utiliser bin-installer
 ----
 
 == CLI
@@ -68,18 +68,18 @@ cp bin/crystal-watermark ~/bin/   # ou utiliser crystal-bin-installer
 ----
 # Filigrane diagonal avec les valeurs par défaut (gris semi-transparent,
 # auto-dimensionné sur la diagonale de la page).
-crystal-watermark document.pdf -t "CONFIDENTIEL"
+watermark document.pdf -t "CONFIDENTIEL"
 
 # Filigrane multi-ligne explicite à l'intention du destinataire — l'un
 # des cas d'usage les plus courants : indiquer ce qui a été envoyé,
 # à qui, et quand.
-crystal-watermark carte-identite.jpg \
+watermark carte-identite.jpg \
   -t "Remis à SuperBocaux — 25 avril 2026
 Création compte fournisseur" \
   -o carte-identite-watermarked.png
 
 # Mode tuilé — le plus difficile à retirer avec un éditeur graphique.
-crystal-watermark contrat.pdf \
+watermark contrat.pdf \
   -t "BROUILLON" \
   --style tiled \
   --opacity 0.10 \
@@ -130,7 +130,7 @@ crystal-watermark contrat.pdf \
 
 [source,crystal]
 ----
-require "crystal-watermark"
+require "watermark"
 
 # Point d'entrée le plus simple — détecte automatiquement le format.
 CrystalWatermark.apply(

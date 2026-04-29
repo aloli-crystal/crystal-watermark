@@ -1,6 +1,6 @@
 require "./spec_helper"
 
-# End-to-end PDF watermarking: generate a real PDF with crystal-pdf,
+# End-to-end PDF watermarking: generate a real PDF with pdf,
 # run the watermarker on it, then re-open the result with `PDF::Reader`
 # to check that the page count and geometry are preserved and that the
 # watermark really landed on every page.

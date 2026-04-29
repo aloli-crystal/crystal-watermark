@@ -1,7 +1,7 @@
 require "spec"
 require "../../src/crystal_watermark"
 
-# Integration-test helpers: spin up real PDFs through `crystal-pdf`,
+# Integration-test helpers: spin up real PDFs through `pdf`,
 # run the watermarker on them, then re-open the result with
 # `PDF::Reader` to assert that the file is still a valid PDF and
 # that a watermark content stream was actually added.

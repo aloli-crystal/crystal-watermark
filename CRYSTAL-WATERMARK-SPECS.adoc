@@ -24,7 +24,7 @@ Filigraner un document avant de le transmettre est une mesure de protection esse
 * *Organisation GitHub* : aloli-crystal
 * *Licence* : MIT
 * *Langage* : Crystal pur
-* *Dépendances* : `crystal-pdf` (aloli-crystal) pour la génération PDF
+* *Dépendances* : `pdf` (aloli-crystal) pour la génération PDF
 
 == Formats supportés
 
@@ -158,7 +158,7 @@ Le PDF est un format structuré composé d'objets. Pour filigraner sans biblioth
 
 === Filigranage images
 
-Pour les images, crystal-watermark utilise `stumpy_png` et `stumpy_jpeg` (dépendances de crystal-pdf) :
+Pour les images, crystal-watermark utilise `stumpy_png` et `stumpy_jpeg` (dépendances de pdf) :
 
 . Charger l'image en mémoire
 . Dessiner le texte du filigrane pixel par pixel avec l'opacité demandée
@@ -205,7 +205,7 @@ crystal-watermark/
 |===
 | Shard | Usage
 
-| `crystal-pdf` (aloli-crystal) | Génération des content streams PDF, accès à stumpy_png/stumpy_jpeg
+| `pdf` (aloli-crystal) | Génération des content streams PDF, accès à stumpy_png/stumpy_jpeg
 |===
 
 == Tests
@@ -254,7 +254,7 @@ WARNING: Les specs sont écrites *avant* le code. Toujours.
 |===
 | Date | Décision | Raison
 
-| 15 avril 2026 | Crystal pur avec crystal-pdf | Réutilise l'écosystème aloli-crystal existant
+| 15 avril 2026 | Crystal pur avec pdf | Réutilise l'écosystème aloli-crystal existant
 | 15 avril 2026 | Parseur PDF minimal (pas de lecture complète) | Seule la structure Page/Content est nécessaire pour injecter un filigrane
 | 15 avril 2026 | Licence MIT | Shard utilitaire, adoption maximale
 | 15 avril 2026 | Sortie PNG pour les images | PNG supporte la transparence, JPEG non — plus cohérent pour un filigrane

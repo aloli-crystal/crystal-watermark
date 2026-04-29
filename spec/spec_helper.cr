@@ -1,6 +1,6 @@
 require "spec"
 require "stumpy_png"
-require "../src/crystal_watermark"
+require "../src/watermark"
 
 # Répertoire pour les fichiers de test temporaires
 SPEC_TMP_DIR = File.join(__DIR__, "tmp")
