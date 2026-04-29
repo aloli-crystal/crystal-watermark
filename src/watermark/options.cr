@@ -1,4 +1,4 @@
-module CrystalWatermark
+module Watermark
   # Options de configuration du filigrane
   class Options
     property font_size : Int32 = 48

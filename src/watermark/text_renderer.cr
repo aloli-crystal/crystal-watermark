@@ -3,7 +3,7 @@
 # et dessine les glyphes bitmap sur un canvas StumpyPNG.
 require "stumpy_png"
 
-module CrystalWatermark
+module Watermark
   class TextRenderer
     # Facteur d'échelle : ratio entre font_size demandé et la hauteur de base du glyphe (16px)
     getter scale : Int32

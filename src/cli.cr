@@ -1,5 +1,5 @@
 require "option_parser"
-require "./crystal_watermark"
+require "./watermark"
 
 # CLI entry point for crystal-watermark.
 #
@@ -31,7 +31,7 @@ parser = OptionParser.new do |p|
   p.on("--font-size TAILLE", "Taille du texte (défaut : 48)") { |s| font_size = s.to_i }
   p.on("--rotation ANGLE", "Angle de rotation en degrés") { |r| rotation = r.to_f }
   p.on("-v", "--version", "Afficher la version") do
-    puts "crystal-watermark #{CrystalWatermark::VERSION}"
+    puts "crystal-watermark #{Watermark::VERSION}"
     exit 0
   end
   p.on("-h", "--help", "Afficher l'aide") do
@@ -86,11 +86,11 @@ end
 color = {color_parts[0], color_parts[1], color_parts[2]}
 
 style = case style_name.downcase
-        when "diagonal" then CrystalWatermark::Style::Diagonal
-        when "header"   then CrystalWatermark::Style::Header
-        when "footer"   then CrystalWatermark::Style::Footer
-        when "center"   then CrystalWatermark::Style::Center
-        when "tiled"    then CrystalWatermark::Style::Tiled
+        when "diagonal" then Watermark::Style::Diagonal
+        when "header"   then Watermark::Style::Header
+        when "footer"   then Watermark::Style::Footer
+        when "center"   then Watermark::Style::Center
+        when "tiled"    then Watermark::Style::Tiled
         else
           STDERR.puts "Erreur : style inconnu « #{style_name} »"
           exit 1
@@ -99,8 +99,8 @@ style = case style_name.downcase
 # Default rotation depends on the style (45° for diagonal/tiled, 0°
 # otherwise). Wrap in `as(Float64)` so the literal-vs-nilable union
 # resolves to a non-nilable Float64 the Options constructor will accept.
-rot = (rotation || (style == CrystalWatermark::Style::Diagonal || style == CrystalWatermark::Style::Tiled ? 45.0 : 0.0)).as(Float64)
-options = CrystalWatermark::Options.new(
+rot = (rotation || (style == Watermark::Style::Diagonal || style == Watermark::Style::Tiled ? 45.0 : 0.0)).as(Float64)
+options = Watermark::Options.new(
   font_size: font_size,
   color: color,
   opacity: opacity,
@@ -109,7 +109,7 @@ options = CrystalWatermark::Options.new(
 )
 
 begin
-  CrystalWatermark.apply(input, output, text, style, options)
+  Watermark.apply(input, output, text, style, options)
   puts "Filigrane appliqué : #{output}"
 rescue ex
   STDERR.puts "Erreur : #{ex.message}"

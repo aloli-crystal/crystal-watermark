@@ -1,6 +1,6 @@
 require "./spec_helper"
 
-describe CrystalWatermark::ImageWatermarker do
+describe Watermark::ImageWatermarker do
   # Chemins des fichiers de test
   test_png = File.join(SPEC_TMP_DIR, "test_document.png")
   test_gradient = File.join(SPEC_TMP_DIR, "test_gradient.png")
@@ -16,7 +16,7 @@ describe CrystalWatermark::ImageWatermarker do
 
   describe "#apply (chemin vers chemin)" do
     it "filigraner une image PNG avec le style diagonal" do
-      watermarker = CrystalWatermark::ImageWatermarker.new("CONFIDENTIEL", CrystalWatermark::Style::Diagonal)
+      watermarker = Watermark::ImageWatermarker.new("CONFIDENTIEL", Watermark::Style::Diagonal)
       watermarker.apply(test_png, output_png)
 
       File.exists?(output_png).should be_true
@@ -30,7 +30,7 @@ describe CrystalWatermark::ImageWatermarker do
     end
 
     it "filigraner une image avec le style header" do
-      watermarker = CrystalWatermark::ImageWatermarker.new("EN-TETE", CrystalWatermark::Style::Header)
+      watermarker = Watermark::ImageWatermarker.new("EN-TETE", Watermark::Style::Header)
       watermarker.apply(test_png, output_png)
 
       File.exists?(output_png).should be_true
@@ -40,21 +40,21 @@ describe CrystalWatermark::ImageWatermarker do
     end
 
     it "filigraner une image avec le style footer" do
-      watermarker = CrystalWatermark::ImageWatermarker.new("PIED DE PAGE", CrystalWatermark::Style::Footer)
+      watermarker = Watermark::ImageWatermarker.new("PIED DE PAGE", Watermark::Style::Footer)
       watermarker.apply(test_png, output_png)
 
       File.exists?(output_png).should be_true
     end
 
     it "filigraner une image avec le style center" do
-      watermarker = CrystalWatermark::ImageWatermarker.new("CENTRE", CrystalWatermark::Style::Center)
+      watermarker = Watermark::ImageWatermarker.new("CENTRE", Watermark::Style::Center)
       watermarker.apply(test_png, output_png)
 
       File.exists?(output_png).should be_true
     end
 
     it "filigraner une image avec le style tiled" do
-      watermarker = CrystalWatermark::ImageWatermarker.new("COPIE", CrystalWatermark::Style::Tiled)
+      watermarker = Watermark::ImageWatermarker.new("COPIE", Watermark::Style::Tiled)
       watermarker.apply(test_png, output_png)
 
       File.exists?(output_png).should be_true
@@ -65,8 +65,8 @@ describe CrystalWatermark::ImageWatermarker do
       original = StumpyPNG.read(test_png)
 
       # Appliquer le filigrane avec une opacité forte pour être sûr que les pixels changent
-      options = CrystalWatermark::Options.new(opacity: 0.5, font_size: 48)
-      watermarker = CrystalWatermark::ImageWatermarker.new("TEST", CrystalWatermark::Style::Center, options)
+      options = Watermark::Options.new(opacity: 0.5, font_size: 48)
+      watermarker = Watermark::ImageWatermarker.new("TEST", Watermark::Style::Center, options)
       watermarker.apply(test_png, output_png)
 
       # Lire l'image filigranée
@@ -89,19 +89,19 @@ describe CrystalWatermark::ImageWatermarker do
     end
 
     it "applique les options de couleur et opacité" do
-      options = CrystalWatermark::Options.new(
+      options = Watermark::Options.new(
         color: {0.8, 0.1, 0.1},
         opacity: 0.30,
         font_size: 32
       )
-      watermarker = CrystalWatermark::ImageWatermarker.new("ROUGE", CrystalWatermark::Style::Center, options)
+      watermarker = Watermark::ImageWatermarker.new("ROUGE", Watermark::Style::Center, options)
       watermarker.apply(test_png, output_png)
 
       File.exists?(output_png).should be_true
     end
 
     it "fonctionne avec l'image dégradé" do
-      watermarker = CrystalWatermark::ImageWatermarker.new("WATERMARK", CrystalWatermark::Style::Diagonal)
+      watermarker = Watermark::ImageWatermarker.new("WATERMARK", Watermark::Style::Diagonal)
       output_gradient = File.join(SPEC_TMP_DIR, "gradient_watermarked.png")
       watermarker.apply(test_gradient, output_gradient)
 
@@ -112,7 +112,7 @@ describe CrystalWatermark::ImageWatermarker do
     end
 
     it "supporte les caractères accentués français" do
-      watermarker = CrystalWatermark::ImageWatermarker.new("Remis à Société — été 2026", CrystalWatermark::Style::Diagonal)
+      watermarker = Watermark::ImageWatermarker.new("Remis à Société — été 2026", Watermark::Style::Diagonal)
       watermarker.apply(test_png, output_png)
 
       File.exists?(output_png).should be_true
@@ -121,21 +121,21 @@ describe CrystalWatermark::ImageWatermarker do
 
   describe "gestion des erreurs" do
     it "lève une erreur pour un fichier inexistant" do
-      watermarker = CrystalWatermark::ImageWatermarker.new("TEST")
+      watermarker = Watermark::ImageWatermarker.new("TEST")
       expect_raises(Exception, "Fichier introuvable") do
         watermarker.apply("/chemin/inexistant.png", output_png)
       end
     end
 
     it "lève une erreur pour un texte vide" do
-      watermarker = CrystalWatermark::ImageWatermarker.new("")
+      watermarker = Watermark::ImageWatermarker.new("")
       expect_raises(Exception, "texte du filigrane ne peut pas être vide") do
         watermarker.apply(test_png, output_png)
       end
     end
 
     it "lève une erreur pour un format non supporté" do
-      watermarker = CrystalWatermark::ImageWatermarker.new("TEST")
+      watermarker = Watermark::ImageWatermarker.new("TEST")
       # Créer un fichier avec une extension non supportée
       bad_file = File.join(SPEC_TMP_DIR, "test.bmp")
       File.write(bad_file, "fake")
@@ -146,7 +146,7 @@ describe CrystalWatermark::ImageWatermarker do
   end
 end
 
-describe CrystalWatermark do
+describe Watermark do
   test_png = File.join(SPEC_TMP_DIR, "test_api.png")
   output_png = File.join(SPEC_TMP_DIR, "output_api.png")
 
@@ -158,7 +158,7 @@ describe CrystalWatermark do
 
   describe ".apply" do
     it "filigraner via l'API simplifiée" do
-      CrystalWatermark.apply(test_png, output_png, "FILIGRANE")
+      Watermark.apply(test_png, output_png, "FILIGRANE")
       File.exists?(output_png).should be_true
     end
 
@@ -173,7 +173,7 @@ describe CrystalWatermark do
       pdf.save(pdf_file)
 
       output_pdf = File.join(SPEC_TMP_DIR, "test-watermarked.pdf")
-      CrystalWatermark.apply(pdf_file, output_pdf, "FILIGRANE TEST")
+      Watermark.apply(pdf_file, output_pdf, "FILIGRANE TEST")
       File.exists?(output_pdf).should be_true
       File.size(output_pdf).should be > File.size(pdf_file)
     end
@@ -182,7 +182,7 @@ describe CrystalWatermark do
       unknown_file = File.join(SPEC_TMP_DIR, "test.tiff")
       File.write(unknown_file, "fake")
       expect_raises(Exception, "Format non supporté") do
-        CrystalWatermark.apply(unknown_file, "out.tiff", "TEST")
+        Watermark.apply(unknown_file, "out.tiff", "TEST")
       end
     end
   end

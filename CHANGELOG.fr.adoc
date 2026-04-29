@@ -3,6 +3,22 @@
 :toc-title: Versions
 :toclevels: 2
 
+== v0.1.3 — 2026-04-29
+
+=== Modifié
+
+* **Module interne renommé** `CrystalWatermark` → `Watermark`
+  (convention Aloli).
+* Dossier source `src/crystal_watermark/` → `src/watermark/` et
+  fichier d'entrée consolidé dans `src/watermark.cr`. Chemins
+  `require` internes adaptés.
+* Comportement et surface CLI inchangés.
+
+=== Note pour les consommateurs
+
+Le code externe qui référençait `CrystalWatermark::*` (par ex.
+`crystal-combine-pdf`) doit être mis à jour vers `Watermark::*`.
+
 == v0.1.2 — 2026-04-29
 
 === Modifié

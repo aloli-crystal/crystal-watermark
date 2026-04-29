@@ -2,7 +2,7 @@
 # Injecte un content stream avec le filigrane sur chaque page.
 require "pdf/src/pdf"
 
-module CrystalWatermark
+module Watermark
   class PdfWatermarker
     def initialize(@text : String, @style : Style = Style::Diagonal, @options : Options = Options.new)
     end

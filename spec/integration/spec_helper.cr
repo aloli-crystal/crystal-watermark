@@ -1,5 +1,5 @@
 require "spec"
-require "../../src/crystal_watermark"
+require "../../src/watermark"
 
 # Integration-test helpers: spin up real PDFs through `pdf`,
 # run the watermarker on them, then re-open the result with

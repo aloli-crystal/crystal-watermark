@@ -20,7 +20,7 @@ describe "Integration · PDF watermarking" do
       original_size = File.size(src)
       original_dims = IntegrationHelper.page_size(src, 0)
 
-      CrystalWatermark.apply(src, dst, "CONFIDENTIEL")
+      Watermark.apply(src, dst, "CONFIDENTIEL")
 
       File.exists?(dst).should be_true
       File.size(dst).should be > original_size
@@ -47,7 +47,7 @@ describe "Integration · PDF watermarking" do
       ((w - 612).abs).should be < 1.0
       ((h - 792).abs).should be < 1.0
 
-      CrystalWatermark.apply(src, dst, "DRAFT")
+      Watermark.apply(src, dst, "DRAFT")
 
       out_w, out_h = IntegrationHelper.page_size(dst, 0)
       out_w.should eq(w)
@@ -64,7 +64,7 @@ describe "Integration · PDF watermarking" do
     IntegrationHelper.write_multipage_pdf(src, 3)
 
     begin
-      CrystalWatermark.apply(src, dst, "BROUILLON")
+      Watermark.apply(src, dst, "BROUILLON")
 
       # Page count is preserved.
       IntegrationHelper.page_count(dst).should eq(3)
@@ -80,16 +80,16 @@ describe "Integration · PDF watermarking" do
   it "produces a different output for each style on the same input" do
     src = File.tempname("wm-it-style-src", ".pdf")
     IntegrationHelper.write_a4_pdf(src)
-    outputs = {} of CrystalWatermark::Style => Int64
+    outputs = {} of Watermark::Style => Int64
 
     begin
-      [CrystalWatermark::Style::Diagonal,
-       CrystalWatermark::Style::Tiled,
-       CrystalWatermark::Style::Header,
-       CrystalWatermark::Style::Footer,
-       CrystalWatermark::Style::Center].each do |style|
+      [Watermark::Style::Diagonal,
+       Watermark::Style::Tiled,
+       Watermark::Style::Header,
+       Watermark::Style::Footer,
+       Watermark::Style::Center].each do |style|
         dst = File.tempname("wm-it-style-#{style.to_s.downcase}", ".pdf")
-        CrystalWatermark.apply(src, dst, "TEST", style)
+        Watermark.apply(src, dst, "TEST", style)
         outputs[style] = File.size(dst)
         # Every style still produces a valid PDF that re-parses.
         IntegrationHelper.page_count(dst).should eq(1)
@@ -98,8 +98,8 @@ describe "Integration · PDF watermarking" do
 
       # Tiled mode draws a grid of the same text → its content
       # stream is much larger than any single-line style.
-      outputs[CrystalWatermark::Style::Tiled].should be > outputs[CrystalWatermark::Style::Header]
-      outputs[CrystalWatermark::Style::Tiled].should be > outputs[CrystalWatermark::Style::Footer]
+      outputs[Watermark::Style::Tiled].should be > outputs[Watermark::Style::Header]
+      outputs[Watermark::Style::Tiled].should be > outputs[Watermark::Style::Footer]
     ensure
       File.delete(src) if File.exists?(src)
     end
@@ -114,7 +114,7 @@ describe "Integration · PDF watermarking" do
       # Mix accented French + smart quotes + em-dash + Euro — all
       # of which the WinAnsi mapping in PdfWatermarker handles.
       text = "Remis à SuperBocaux — 25 € « confidentiel »"
-      CrystalWatermark.apply(src, dst, text)
+      Watermark.apply(src, dst, text)
 
       File.exists?(dst).should be_true
       File.size(dst).should be > File.size(src)

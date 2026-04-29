@@ -4,7 +4,7 @@
 require "stumpy_png"
 require "stumpy_jpeg"
 
-module CrystalWatermark
+module Watermark
   class ImageWatermarker
     def initialize(@text : String, @style : Style = Style::Diagonal, @options : Options = Options.new)
     end

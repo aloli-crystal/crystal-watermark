@@ -1,4 +1,4 @@
-module CrystalWatermark
+module Watermark
   # Styles de filigrane disponibles
   enum Style
     Diagonal # Texte en diagonale au centre (45°)

@@ -1,9 +1,9 @@
 require "./spec_helper"
 
-describe CrystalWatermark::Options do
+describe Watermark::Options do
   describe "#initialize" do
     it "utilise les valeurs par défaut" do
-      opts = CrystalWatermark::Options.new
+      opts = Watermark::Options.new
       opts.font_size.should eq(48)
       opts.color.should eq({0.5, 0.5, 0.5})
       opts.opacity.should eq(0.15)
@@ -13,7 +13,7 @@ describe CrystalWatermark::Options do
     end
 
     it "accepte des valeurs personnalisées" do
-      opts = CrystalWatermark::Options.new(
+      opts = Watermark::Options.new(
         font_size: 72,
         color: {0.8, 0.1, 0.1},
         opacity: 0.30,
@@ -32,13 +32,13 @@ describe CrystalWatermark::Options do
 
   describe "propriétés modifiables" do
     it "permet de modifier font_size après création" do
-      opts = CrystalWatermark::Options.new
+      opts = Watermark::Options.new
       opts.font_size = 96
       opts.font_size.should eq(96)
     end
 
     it "permet de modifier opacity après création" do
-      opts = CrystalWatermark::Options.new
+      opts = Watermark::Options.new
       opts.opacity = 0.5
       opts.opacity.should eq(0.5)
     end

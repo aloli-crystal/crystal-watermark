@@ -2,7 +2,7 @@
 # Chaque glyphe fait 8 pixels de large et 16 pixels de haut.
 # Les données sont stockées sous forme de 16 octets par caractère,
 # chaque bit représentant un pixel (1 = allumé, 0 = éteint).
-module CrystalWatermark
+module Watermark
   module BitmapFont
     GLYPH_WIDTH  =  8
     GLYPH_HEIGHT = 16
