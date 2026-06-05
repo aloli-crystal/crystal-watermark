@@ -1,5 +1,5 @@
 name: watermark
-version: 0.1.4
+version: 0.1.5
 
 description: |
   Add text watermarks to PDF and image files (PNG, JPEG). Pure Crystal,
@@ -19,7 +19,7 @@ license: MIT
 dependencies:
   pdf:
     github: aloli-crystal/pdf
-    version: "~> 0.3"
+    version: "~> 1.6"
 
 development_dependencies:
   ameba:

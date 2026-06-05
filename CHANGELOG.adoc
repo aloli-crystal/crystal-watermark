@@ -3,6 +3,16 @@
 :toc-title: Versions
 :toclevels: 2
 
+== v0.1.5 — 2026-06-05
+
+=== Changed
+
+* **Aligned on `pdf ~> 1.6`** (was `~> 0.3`). Part of levelling the whole
+  ALOLI PDF suite onto a single `pdf` major so the tools can be built
+  together (e.g. under the unified `alolipdf` binary). watermark only
+  uses `PDF::Reader`, which is unchanged — no code change, 24 specs green
+  against pdf 1.6.0.
+
 == v0.1.3 — 2026-04-29
 
 === Changed
