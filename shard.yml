@@ -1,5 +1,5 @@
 name: watermark
-version: 0.1.5
+version: 0.1.6
 
 description: |
   Add text watermarks to PDF and image files (PNG, JPEG). Pure Crystal,

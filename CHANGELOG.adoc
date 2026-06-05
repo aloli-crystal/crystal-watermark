@@ -3,6 +3,16 @@
 :toc-title: Versions
 :toclevels: 2
 
+== v0.1.6 — 2026-06-05
+
+=== Added
+
+* **Callable CLI entry point `Watermark::Cli.run(argv) : Int32`**
+  (`src/watermark/cli.cr`). The command logic moved out of the top-level
+  `src/cli.cr` script into a method, so it can run both as the standalone
+  `watermark` binary AND in-process from the unified `alolipdf` binary
+  (aloli-crystal/pdf-tools). Behaviour is unchanged — 24 specs green.
+
 == v0.1.5 — 2026-06-05
 
 === Changed
