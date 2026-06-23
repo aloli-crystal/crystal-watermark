@@ -9,6 +9,11 @@
 # Test artefacts
 /spec/tmp/
 
+# PDFs de test posés à la racine ou dans tmp/ (PDFs canoniques
+# pour les specs sont dans /spec/fixtures/, qui n'est PAS ignoré).
+/*.pdf
+/tmp/*.pdf
+
 # macOS
 .DS_Store
 
