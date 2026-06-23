@@ -3,6 +3,39 @@
 :toc-title: Versions
 :toclevels: 2
 
+== v0.1.7 — 2026-06-23
+
+=== Added
+
+* **Flag `-R` / `--rasterize`** sur le CLI. Après l'application du
+  filigrane, post-traite le PDF de sortie via
+  `crystal-combine-pdf rasterize` (chaque page devient un JPEG
+  plein page). Conséquence : le filigrane devient **indissociable
+  du contenu**, impossible à retirer sans détruire les chiffres
+  utiles (IBAN, montants, signatures). Pattern observé chez
+  DossierFacile pour les RIB protégés.
++
+[source,bash]
+----
+crystal-watermark rib.pdf -t "Document destiné à X - 23/06/2026" \
+                          -s tiled --rasterize
+----
++
+Le résultat n'a plus de texte extractible (`pdftotext` rend
+vide), plus aucune police embarquée, le filigrane et le contenu
+fusionnés en un JPEG par page.
++
+Flags associés (réglent la qualité de la rastérisation) :
++
+* `--rasterize-dpi N` — résolution de rendu (défaut 200 dpi).
+* `--rasterize-quality Q` — qualité JPEG 0-100 (défaut 85).
+
+=== Requirements
+
+* `crystal-combine-pdf` 1.0.31.44+ dans le PATH (qui fait
+  lui-même le shell-out à Ghostscript). Erreur explicite avec
+  pointeur d'installation si absent.
+
 == v0.1.6 — 2026-06-05
 
 === Added

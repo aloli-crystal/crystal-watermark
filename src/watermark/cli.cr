@@ -26,6 +26,9 @@ module Watermark
       color_str = "0.5,0.5,0.5"
       font_size = 48
       rotation : Float64? = nil
+      rasterize = false
+      rasterize_dpi = 200
+      rasterize_quality = 85
 
       parser = OptionParser.new do |p|
         p.banner = "Usage: crystal-watermark FICHIER [options]"
@@ -39,6 +42,14 @@ module Watermark
         p.on("--color R,G,B", "Couleur RGB (défaut : 0.5,0.5,0.5)") { |c| color_str = c }
         p.on("--font-size TAILLE", "Taille du texte (défaut : 48)") { |s| font_size = s.to_i }
         p.on("--rotation ANGLE", "Angle de rotation en degrés") { |r| rotation = r.to_f }
+        p.on("-R", "--rasterize",
+          "Rastérise le PDF de sortie (chaque page devient une image JPEG plein page). " \
+          "Rend le filigrane indissociable du contenu — pattern anti-falsification de DossierFacile. " \
+          "Délègue à `crystal-combine-pdf rasterize` (qui doit être installé + Ghostscript).") do
+          rasterize = true
+        end
+        p.on("--rasterize-dpi N", "DPI de rastérisation (défaut : 200)") { |v| rasterize_dpi = v.to_i }
+        p.on("--rasterize-quality Q", "Qualité JPEG 0-100 (défaut : 85)") { |v| rasterize_quality = v.to_i }
         p.on("-v", "--version", "Afficher la version") do
           puts "crystal-watermark #{Watermark::VERSION}"
           raise Halt.new(0)
@@ -111,6 +122,35 @@ module Watermark
       begin
         Watermark.apply(input, output, text, style, options)
         puts "Filigrane appliqué : #{output}"
+
+        # Post-traitement rastérisation : rend le filigrane
+        # indissociable du contenu en convertissant chaque page en
+        # JPEG plein page. Délègue à `crystal-combine-pdf rasterize`
+        # qui sait orchestrer gs (Ghostscript) + reconstruction PDF.
+        # Pattern observé chez DossierFacile pour les RIB protégés.
+        if rasterize
+          ccp = Process.find_executable("crystal-combine-pdf")
+          if ccp.nil?
+            STDERR.puts "Erreur : --rasterize nécessite `crystal-combine-pdf` dans le PATH."
+            STDERR.puts "Installation : voir aloli-crystal/crystal-combine-pdf."
+            return 1
+          end
+          err_buf = IO::Memory.new
+          status = Process.run(
+            ccp,
+            ["rasterize", output, "-i",
+             "--dpi", rasterize_dpi.to_s,
+             "--quality", rasterize_quality.to_s],
+            output: Process::Redirect::Close,
+            error: err_buf,
+          )
+          unless status.success?
+            STDERR.puts "Erreur : crystal-combine-pdf rasterize a échoué (exit #{status.exit_code})."
+            STDERR.puts err_buf.to_s.lines.first?.try(&.strip) || ""
+            return 1
+          end
+          puts "✓ Rastérisé (#{rasterize_dpi} dpi, qualité #{rasterize_quality}) — filigrane indissociable."
+        end
         0
       rescue ex
         STDERR.puts "Erreur : #{ex.message}"
