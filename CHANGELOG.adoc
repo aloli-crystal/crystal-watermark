@@ -3,6 +3,63 @@
 :toc-title: Versions
 :toclevels: 2
 
+== v0.1.8 — 2026-07-16
+
+=== Fixed
+
+* **Filigrane invisible sur la plupart des PDFs sources.** Bug
+  reproduit sur un RIB Caisse d'Épargne : `watermark rib.pdf
+  -t "..." -s tiled` retournait « Filigrane appliqué » avec
+  code 0 mais le PDF de sortie était visuellement identique à
+  l'entrée.
++
+Cause : le stream du filigrane référençait `/Helvetica` (fonte
+Type1 standard) alors que les `/Resources /Font` de la page
+héritaient d'autres fontes (ex. Ubuntu-Light, Ubuntu-Medium,
+Calibri sur le RIB testé). Tout viewer PDF **skip silencieusement**
+les opérateurs `Tj` qui suivent un `Tf` référençant une fonte
+inconnue, résultat : rien ne se rend, aucune erreur.
++
+Fix : `ensure_helvetica_declared(page)` injecte
+`/Helvetica -> {Type: Font, Subtype: Type1, BaseFont: Helvetica,
+Encoding: WinAnsiEncoding}` dans les Resources de chaque page
+avant l'ajout du stream.
+
+* **Style `tiled` peu dense.** Ancienne implémentation posait 7
+  occurrences le long d'UNE SEULE diagonale (spacing_x calculé
+  avec la longueur totale du texte + filtre de bornes trop
+  agressif après rotation par-Tm). Une page A4 avec un texte de
+  73 caractères et taille 28 pt donnait 7 tuiles au lieu de
+  ~90.
++
+Fix : refactor complet du builder tiled. La rotation est
+maintenant appliquée **globalement** via un opérateur `cm`
+autour du centre de la page (une seule matrice), et la grille
+de répétitions est **rectiligne** dans le repère pré-rotation
+(plus simple à raisonner, garantit densité uniforme).
++
+Grille dimensionnée sur la diagonale de la page pour couvrir
+tous les coins post-rotation. Résultat sur le même RIB A4 :
+96 tuiles au lieu de 7.
+
+=== Changed
+
+* **Vraie transparence via `/ExtGState /ca`** au lieu du
+  blanchissement de couleur historique (mixage avec blanc du
+  fond). L'ancien schéma rendait le filigrane invisible sur un
+  fond noir ou coloré, et très pâle sur fond blanc à faible
+  opacité. Le nouveau utilise l'attribut `/ca` (non-stroking
+  alpha, PDF 1.4+) et `/CA` (stroking), déclarés dans
+  `/Resources /ExtGState /GS_watermark` de chaque page.
++
+Compatible avec tous les viewers modernes. `--opacity 0.15`
+donne désormais un rendu identique quel que soit le fond.
+
+* **Banner CLI et `--version`** corrigés : `crystal-watermark`
+  → `watermark`. Le binaire s'appelle `watermark` depuis le
+  début (cf. `feedback_shard_naming.md` : créations ALOLI sans
+  préfixe `crystal-`). Le banner mentait.
+
 == v0.1.7 — 2026-06-23
 
 === Added

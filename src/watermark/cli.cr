@@ -31,7 +31,7 @@ module Watermark
       rasterize_quality = 85
 
       parser = OptionParser.new do |p|
-        p.banner = "Usage: crystal-watermark FICHIER [options]"
+        p.banner = "Usage: watermark FICHIER [options]"
         p.separator ""
         p.separator "Options :"
 
@@ -51,7 +51,7 @@ module Watermark
         p.on("--rasterize-dpi N", "DPI de rastérisation (défaut : 200)") { |v| rasterize_dpi = v.to_i }
         p.on("--rasterize-quality Q", "Qualité JPEG 0-100 (défaut : 85)") { |v| rasterize_quality = v.to_i }
         p.on("-v", "--version", "Afficher la version") do
-          puts "crystal-watermark #{Watermark::VERSION}"
+          puts "watermark #{Watermark::VERSION}"
           raise Halt.new(0)
         end
         p.on("-h", "--help", "Afficher l'aide") do

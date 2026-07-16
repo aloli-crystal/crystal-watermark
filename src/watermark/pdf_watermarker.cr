@@ -12,11 +12,72 @@ module Watermark
       reader = PDF::Reader.open(input_path)
 
       reader.pages.each do |page|
+        # Le stream du filigrane référence `/Helvetica` (fonte Type1
+        # standard PDF, encodage WinAnsi). Sans déclaration dans les
+        # `/Resources /Font` de la page, tout viewer skip silencieusement
+        # les `Tj` du stream — texte invisible, code retour 0, sortie
+        # visuellement identique à l'entrée. Bug reproduit sur un RIB
+        # Caisse d'Épargne (2026-07-16) : les Resources originales
+        # contenaient Ubuntu-Light/Medium + Calibri, pas d'Helvetica.
+        ensure_helvetica_declared(page)
+        ensure_opacity_extgstate(page) if @options.opacity < 1.0
         stream = build_watermark_stream(page.width, page.height)
         page.add_content_stream(stream)
       end
 
       reader.save(output_path)
+    end
+
+    # Injecte l'entrée `/Helvetica` dans `/Resources /Font` de la page si
+    # elle n'existe pas déjà. Helvetica est une des 14 fontes Type1
+    # standard PDF (ISO 32000-1 § 9.6.2.2) — pas besoin d'embarquer les
+    # métriques, juste de la déclarer.
+    #
+    # NB : on écrit dans le dict `/Font` **inline** de la page, pas dans
+    # un `/Font` hérité via `/Parent`. Si les Resources héritent d'un
+    # parent, on force une copie locale — sinon la modif serait
+    # propagée à toutes les pages du même parent (aucun risque de
+    # collision : on ajoute une clé, on n'écrase rien).
+    private def ensure_helvetica_declared(page : PDF::ReaderPage) : Nil
+      resources = page.resources
+      font_dict = resources["Font"]?.try &.as?(PDF::Objects::Dictionary)
+      if font_dict.nil?
+        font_dict = PDF::Objects::Dictionary.new
+        resources["Font"] = font_dict
+      end
+      return if font_dict.has_key?("Helvetica")
+
+      helvetica = PDF::Fonts::Type1.new("Helvetica").to_dictionary
+      font_dict["Helvetica"] = helvetica
+
+      # Force la persistance : le dict Resources modifié doit être ré-écrit
+      # dans le trailer incrémental. `add_content_stream` marque déjà la
+      # page comme dirty pour l'écriture, mais si les Resources sont un
+      # objet indirect séparé, on doit aussi le marquer.
+      page.page_dict["Resources"] = resources
+    end
+
+    # Déclare un dict `/ExtGState /GS_watermark` avec `/ca` = opacité,
+    # référencé dans les streams via `/GS_watermark gs`. Permet une
+    # transparence réelle (PDF 1.4+), remplace le blanchissement
+    # historique qui rendait le filigrane peu visible sur fond non
+    # blanc et invisible sur fond blanc à opacité faible.
+    private def ensure_opacity_extgstate(page : PDF::ReaderPage) : Nil
+      resources = page.resources
+      ext_gs_dict = resources["ExtGState"]?.try &.as?(PDF::Objects::Dictionary)
+      if ext_gs_dict.nil?
+        ext_gs_dict = PDF::Objects::Dictionary.new
+        resources["ExtGState"] = ext_gs_dict
+      end
+      return if ext_gs_dict.has_key?("GS_watermark")
+
+      gs = PDF::Objects::Dictionary.new
+      gs["Type"] = PDF::Objects::Name.new("ExtGState")
+      gs["ca"] = PDF::Objects::Number.new(@options.opacity) # non-stroking alpha
+      gs["CA"] = PDF::Objects::Number.new(@options.opacity) # stroking alpha
+      ext_gs_dict["GS_watermark"] = gs
+
+      page.page_dict["Resources"] = resources
     end
 
     # Construit le content stream PDF pour le filigrane
@@ -63,16 +124,10 @@ module Watermark
       max_size = (diagonal / (max_chars * 0.52)).to_i
       size = Math.min(@options.font_size, max_size)
 
-      # Couleur avec opacité simulée (mélange avec le blanc du fond)
-      adjusted_r = 1.0 - (1.0 - r) * opacity
-      adjusted_g = 1.0 - (1.0 - g) * opacity
-      adjusted_b = 1.0 - (1.0 - b) * opacity
-
       String.build do |io|
         io << "q\n"
-        io << format_number(adjusted_r) << " "
-        io << format_number(adjusted_g) << " "
-        io << format_number(adjusted_b) << " rg\n"
+        emit_opacity_ext_gstate(io) if opacity < 1.0
+        io << format_number(r) << " " << format_number(g) << " " << format_number(b) << " rg\n"
 
         io << "BT\n"
         io << "/Helvetica " << size << " Tf\n"
@@ -103,61 +158,89 @@ module Watermark
       end
     end
 
-    # Filigrane en mosaïque (répété sur toute la page)
+    # Filigrane en mosaïque : répète le texte sur toute la page en
+    # grille dense, avec une rotation globale (via `cm` — Concatenate
+    # Matrix — appliquée une seule fois autour du centre de la page).
+    #
+    # Ancienne implémentation posait 7 occurrences le long d'une seule
+    # diagonale à cause d'un mauvais calcul de spacing et d'un filtre
+    # de bornes trop agressif après rotation. Le nouveau schéma raisonne
+    # dans le repère pré-rotation (grille rectiligne facile), et la
+    # rotation se fait globalement.
     private def build_tiled_stream(w : Float64, h : Float64) : String
       r, g, b = @options.color
       size = (@options.font_size * 0.6).to_i # Plus petit pour la mosaïque
       angle = @options.rotation * Math::PI / 180.0
 
-      # Couleur avec opacité simulée
-      adjusted_r = 1.0 - (1.0 - r) * @options.opacity
-      adjusted_g = 1.0 - (1.0 - g) * @options.opacity
-      adjusted_b = 1.0 - (1.0 - b) * @options.opacity
+      cos_a = Math.cos(angle)
+      sin_a = Math.sin(angle)
 
       lines = @text.split('\n')
       first_line = lines.first
 
-      # Espacement entre les répétitions
-      text_width = first_line.size * size * 0.5
-      spacing_x = text_width + 80
-      spacing_y = size * lines.size * 1.5 + 80
+      # Largeur approximative du texte (Helvetica ≈ 0.52 * size par
+      # caractère). Ajout d'un padding horizontal pour l'espacement
+      # entre répétitions.
+      text_width = first_line.size * size * 0.55
+      spacing_x = text_width + size * 2.0
+      spacing_y = (size * lines.size * 1.4 + size * 3.0)
 
-      cos_a = Math.cos(angle)
-      sin_a = Math.sin(angle)
+      # Diagonale de la page = borne supérieure de la « boîte
+      # englobante » d'une grille tournée. On génère une grille
+      # sensiblement plus grande, puis on filtre les instances hors
+      # page après application de la rotation autour du centre.
+      diagonal = Math.sqrt(w * w + h * h)
+      cols = (diagonal / spacing_x).ceil.to_i + 2
+      rows = (diagonal / spacing_y).ceil.to_i + 2
+
+      cx = w / 2.0
+      cy = h / 2.0
 
       String.build do |io|
         io << "q\n"
-        io << format_number(adjusted_r) << " "
-        io << format_number(adjusted_g) << " "
-        io << format_number(adjusted_b) << " rg\n"
+        emit_opacity_ext_gstate(io) if @options.opacity < 1.0
+        io << format_number(r) << " " << format_number(g) << " " << format_number(b) << " rg\n"
+
+        # Rotation globale autour du centre de la page via `cm`.
+        # Matrice de rotation autour de (cx, cy) :
+        #   [cos_a, sin_a, -sin_a, cos_a,
+        #    cx - cx*cos_a + cy*sin_a,
+        #    cy - cx*sin_a - cy*cos_a]
+        tx = cx - cx * cos_a + cy * sin_a
+        ty = cy - cx * sin_a - cy * cos_a
+        io << format_number(cos_a) << " " << format_number(sin_a) << " "
+        io << format_number(-sin_a) << " " << format_number(cos_a) << " "
+        io << format_number(tx) << " " << format_number(ty) << " cm\n"
+
         io << "BT\n"
         io << "/Helvetica " << size << " Tf\n"
 
-        # Grille de filigranes
-        y = -h * 0.5
-        while y < h * 1.5
-          x = -w * 0.5
-          while x < w * 1.5
-            lines.each_with_index do |line, i|
-              # Position avec rotation
-              rx = x * cos_a - (y + i * size * 1.2) * sin_a
-              ry = x * sin_a + (y + i * size * 1.2) * cos_a
-
-              if rx > -200 && rx < w + 200 && ry > -200 && ry < h + 200
-                io << format_number(cos_a) << " " << format_number(sin_a) << " "
-                io << format_number(-sin_a) << " " << format_number(cos_a) << " "
-                io << format_number(rx) << " " << format_number(ry) << " Tm\n"
-                io << "(" << escape_pdf_string(line) << ") Tj\n"
-              end
+        # Grille rectiligne centrée sur la page (dans le repère
+        # pré-rotation). La rotation `cm` fait tout le travail
+        # géométrique — les Tm restent alignés à l'axe.
+        (-rows // 2..rows // 2).each do |row_i|
+          (-cols // 2..cols // 2).each do |col_i|
+            lines.each_with_index do |line, line_i|
+              tx_i = cx + col_i * spacing_x
+              ty_i = cy + row_i * spacing_y - line_i * size * 1.2
+              io << "1 0 0 1 " << format_number(tx_i) << " " << format_number(ty_i) << " Tm\n"
+              io << "(" << escape_pdf_string(line) << ") Tj\n"
             end
-            x += spacing_x
           end
-          y += spacing_y
         end
 
         io << "ET\n"
         io << "Q\n"
       end
+    end
+
+    # Émet un `/GS<n> gs` référence à un ExtGState qui pose l'opacité
+    # non-stroking (`/ca`). Nécessite que le dict ExtGState soit
+    # déclaré dans les Resources de la page (cf. `ensure_helvetica_declared`
+    # + `ensure_opacity_extgstate`). Fallback historique (blanchissement
+    # de la couleur) était visuellement pauvre sur fond non-blanc.
+    private def emit_opacity_ext_gstate(io : IO) : Nil
+      io << "/GS_watermark gs\n"
     end
 
     # Filigrane en en-tête
@@ -180,17 +263,12 @@ module Watermark
       r, g, b = @options.color
       size = @options.font_size
 
-      adjusted_r = 1.0 - (1.0 - r) * @options.opacity
-      adjusted_g = 1.0 - (1.0 - g) * @options.opacity
-      adjusted_b = 1.0 - (1.0 - b) * @options.opacity
-
       lines = @text.split('\n')
 
       String.build do |io|
         io << "q\n"
-        io << format_number(adjusted_r) << " "
-        io << format_number(adjusted_g) << " "
-        io << format_number(adjusted_b) << " rg\n"
+        emit_opacity_ext_gstate(io) if @options.opacity < 1.0
+        io << format_number(r) << " " << format_number(g) << " " << format_number(b) << " rg\n"
         io << "BT\n"
         io << "/Helvetica " << size << " Tf\n"
 
